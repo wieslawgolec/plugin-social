@@ -22,11 +22,16 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
           tools: composer:v2
+          extensions: mbstring, dom, xmlwriter, ctype, json, tokenizer
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish --no-check-lock
 
       - name: Install dependencies
         run: |
-          composer require --dev phpunit/phpunit:^11.5 --no-update
-          composer update --prefer-dist --no-interaction --no-progress
+          # PHP 8.6 may still be in development; packages often do not declare support yet.
+          # --ignore-platform-reqs is required so composer can install on 8.6 runners.
+          composer update --prefer-dist --no-interaction --no-progress --ignore-platform-reqs
 
       - name: Run PHPUnit
-        run: vendor/bin/phpunit --configuration phpunit.xml.dist
+        run: vendor/bin/phpunit --configuration phpunit.xml.dist --colors=always
