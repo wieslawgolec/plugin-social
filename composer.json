@@ -1,6 +1,6 @@
 {
     "name": "wieslawgolec/plugin-social",
-    "description": "Modernized Mautic Social Bundle for Mautic 7.2+ — X API v2, Facebook Graph v26, Instagram Business Graph, Yelp Places (Foursquare removed)",
+    "description": "Modernized Mautic Social Bundle for Mautic 7.2+ \u2014 X API v2, Facebook Graph v26, Instagram Business Graph, Yelp Places (Foursquare removed)",
     "type": "mautic-plugin",
     "license": "GPL-3.0-or-later",
     "keywords": ["mautic", "plugin", "integration", "twitter", "x", "facebook", "instagram", "yelp"],
@@ -8,11 +8,13 @@
         "install-directory-name": "MauticSocialBundle"
     },
     "require": {
-        "php": ">=8.2",
-        "mautic/core-lib": "^7.0"
+        "php": ">=8.2"
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5"
+    },
+    "suggest": {
+        "mautic/core-lib": "Required when installed inside Mautic 7.2+ (^7.0)"
     },
     "autoload": {
         "psr-4": {
@@ -25,7 +27,13 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit --configuration phpunit.xml.dist"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "*": true
+        }
     },
     "minimum-stability": "dev",
     "prefer-stable": true
