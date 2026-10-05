@@ -1,21 +1,16 @@
 <?php
-
 declare(strict_types=1);
-
-$autoload = dirname(__DIR__).'/vendor/autoload.php';
-if (is_file($autoload)) {
-    require $autoload;
+$root = dirname(__DIR__);
+if (is_file($root.'/vendor/autoload.php')) {
+    require $root.'/vendor/autoload.php';
 }
-
-// Minimal stubs so unit tests can load integration classes without full Mautic core.
-spl_autoload_register(static function (string $class): void {
+spl_autoload_register(static function (string $class) use ($root): void {
     $prefix = 'MauticPlugin\\MauticSocialBundle\\';
     if (!str_starts_with($class, $prefix)) {
         return;
     }
-    $relative = substr($class, strlen($prefix));
-    $file = dirname(__DIR__).'/'.str_replace('\\', '/', $relative).'.php';
+    $file = $root.'/'.str_replace('\\', '/', substr($class, strlen($prefix))).'.php';
     if (is_file($file)) {
-        require $file;
+        require_once $file;
     }
 });
