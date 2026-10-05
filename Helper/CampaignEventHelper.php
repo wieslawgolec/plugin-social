@@ -36,6 +36,7 @@ final class CampaignEventHelper
         /** @var \MauticPlugin\MauticSocialBundle\Integration\TwitterIntegration $twitterIntegration */
         $twitterIntegration = $this->integrationHelper->getIntegrationObject('Twitter');
 
+        // Setup clickthrough for URLs in tweet
         $this->clickthrough = [
             'source' => ['campaign', $event['campaign']['id']],
         ];
@@ -47,10 +48,10 @@ final class CampaignEventHelper
 
         $tweetText = $tweetEntity->getText();
         $tweetText = $this->parseTweetText($tweetText, $leadArray, $tweetEntity->getId());
-
         // Post via X API v2
         $sendResponse = $twitterIntegration->postTweet($tweetText);
 
+        // verify the tweet was sent by checking for a tweet id
         if (is_array($sendResponse) && (array_key_exists('id_str', $sendResponse) || isset($sendResponse['data']['id']))) {
             $tweetSent = true;
         }
@@ -69,6 +70,13 @@ final class CampaignEventHelper
         return $response;
     }
 
+    /**
+     * PreParse the twitter message and replace placeholders with values.
+     *
+     * @param string $text
+     *
+     * @return string|string[]
+     */
     private function parseTweetText($text, array $lead, ?int $channelId = -1): array|string
     {
         $tweetHandle = $lead['twitter'];
@@ -90,6 +98,10 @@ final class CampaignEventHelper
             $channelId
         );
 
+        /**
+         * @var string    $token
+         * @var Trackable $trackable
+         */
         foreach ($trackables as $token => $trackable) {
             $tokens[$token] = $this->trackableModel->generateTrackableUrl($trackable, array_merge($this->clickthrough, ['lead' => $lead['id']]));
         }

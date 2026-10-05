@@ -12,8 +12,10 @@ return function (ContainerConfigurator $configurator): void {
         ->autoconfigure()
         ->public();
 
+    $excludes = [];
+
     $services->load('MauticPlugin\\MauticSocialBundle\\', '../')
-        ->exclude('../{'.implode(',', MauticCoreExtension::DEFAULT_EXCLUDES).'}');
+        ->exclude('../{'.implode(',', array_merge(MauticCoreExtension::DEFAULT_EXCLUDES, $excludes)).'}');
 
     $services->load('MauticPlugin\\MauticSocialBundle\\Entity\\', '../Entity/*Repository.php');
     $services->set('mautic.social.helper.campaign', MauticPlugin\MauticSocialBundle\Helper\CampaignEventHelper::class);

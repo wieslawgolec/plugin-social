@@ -62,6 +62,11 @@ final class InstagramIntegration extends SocialIntegration
         return 'https://graph.facebook.com/'.$endpoint;
     }
 
+    /**
+     * Business Discovery for another professional account username.
+     *
+     * @return array<string, mixed>|null
+     */
     public function businessDiscovery(string $igUserId, string $username): ?array
     {
         $response = $this->makeRequest(
@@ -79,6 +84,11 @@ final class InstagramIntegration extends SocialIntegration
         return null;
     }
 
+    /**
+     * Resolve hashtag ID (counts against 30 unique / 7-day quota).
+     *
+     * @return string|null
+     */
     public function searchHashtag(string $igUserId, string $hashtag): ?string
     {
         $hashtag = ltrim($hashtag, '#');
@@ -100,6 +110,7 @@ final class InstagramIntegration extends SocialIntegration
 
     public function getUserData($identifier, &$socialCache): void
     {
+        // Requires a connected Instagram Business user id in keys / social cache
         $socialCache['profile'] = [
             'profileHandle' => ltrim((string) $identifier, '@'),
             'note'          => 'Instagram Graph requires a connected Business/Creator account. Use businessDiscovery() for professional accounts.',

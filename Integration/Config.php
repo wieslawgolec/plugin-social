@@ -1,19 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MauticPlugin\MauticSocialBundle\Integration;
 
 use Mautic\PluginBundle\Helper\IntegrationHelper;
 
-class Config
+final readonly class Config
 {
     public function __construct(
-        private IntegrationHelper $integrationHelper
+        private IntegrationHelper $integrationsHelper,
     ) {
     }
 
     public function isPublished(): bool
     {
-        $integration = $this->integrationHelper->getIntegrationObject('Twitter');
+        $integration = $this->integrationsHelper->getIntegrationObject(TwitterIntegration::NAME);
 
         return $integration && $integration->getIntegrationSettings()->getIsPublished();
     }
