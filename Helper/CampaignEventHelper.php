@@ -1,0 +1,99 @@
+<?php
+
+namespace MauticPlugin\MauticSocialBundle\Helper;
+
+use Mautic\AssetBundle\Helper\TokenHelper as AssetTokenHelper;
+use Mautic\LeadBundle\Entity\Lead;
+use Mautic\LeadBundle\Helper\TokenHelper;
+use Mautic\PageBundle\Entity\Trackable;
+use Mautic\PageBundle\Helper\TokenHelper as PageTokenHelper;
+use Mautic\PageBundle\Model\TrackableModel;
+use Mautic\PluginBundle\Helper\IntegrationHelper;
+use MauticPlugin\MauticSocialBundle\Model\TweetModel;
+
+final class CampaignEventHelper
+{
+    private array $clickthrough = [];
+
+    public function __construct(
+        private readonly IntegrationHelper $integrationHelper,
+        private readonly TrackableModel $trackableModel,
+        private readonly PageTokenHelper $pageTokenHelper,
+        private readonly AssetTokenHelper $assetTokenHelper,
+        private readonly TweetModel $tweetModel,
+    ) {
+    }
+
+    public function sendTweetAction(Lead $lead, array $event): array|false
+    {
+        $tweetSent   = false;
+        $tweetEntity = $this->tweetModel->getEntity($event['channelId']);
+
+        if (!$tweetEntity) {
+            return ['failed' => 1, 'response' => 'Tweet entity '.$event['channelId'].' not found'];
+        }
+
+        /** @var \MauticPlugin\MauticSocialBundle\Integration\TwitterIntegration $twitterIntegration */
+        $twitterIntegration = $this->integrationHelper->getIntegrationObject('Twitter');
+
+        $this->clickthrough = [
+            'source' => ['campaign', $event['campaign']['id']],
+        ];
+
+        $leadArray = $lead->getProfileFields();
+        if (empty($leadArray['twitter'])) {
+            return false;
+        }
+
+        $tweetText = $tweetEntity->getText();
+        $tweetText = $this->parseTweetText($tweetText, $leadArray, $tweetEntity->getId());
+
+        // Post via X API v2
+        $sendResponse = $twitterIntegration->postTweet($tweetText);
+
+        if (is_array($sendResponse) && (array_key_exists('id_str', $sendResponse) || isset($sendResponse['data']['id']))) {
+            $tweetSent = true;
+        }
+
+        if ($tweetSent) {
+            $this->tweetModel->registerSend($tweetEntity, $lead, $sendResponse, 'campaign.event', $event['id']);
+
+            return ['timeline' => $tweetText, 'response' => $sendResponse];
+        }
+
+        $response = ['failed' => 1, 'response' => $sendResponse];
+        if (!empty($sendResponse['error']['message'])) {
+            $response['reason'] = $sendResponse['error']['message'];
+        }
+
+        return $response;
+    }
+
+    private function parseTweetText($text, array $lead, ?int $channelId = -1): array|string
+    {
+        $tweetHandle = $lead['twitter'];
+        $tokens      = [
+            '{twitter_handle}' => (str_contains($tweetHandle, '@')) ? $tweetHandle : "@{$tweetHandle}",
+        ];
+
+        $tokens = array_merge(
+            $tokens,
+            TokenHelper::findLeadTokens($text, $lead),
+            $this->pageTokenHelper->findPageTokens($text, $this->clickthrough),
+            $this->assetTokenHelper->findAssetTokens($text, $this->clickthrough)
+        );
+
+        [$text, $trackables] = $this->trackableModel->parseContentForTrackables(
+            $text,
+            $tokens,
+            'social_twitter',
+            $channelId
+        );
+
+        foreach ($trackables as $token => $trackable) {
+            $tokens[$token] = $this->trackableModel->generateTrackableUrl($trackable, array_merge($this->clickthrough, ['lead' => $lead['id']]));
+        }
+
+        return str_replace(array_keys($tokens), array_values($tokens), $text);
+    }
+}
