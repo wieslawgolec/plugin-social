@@ -9,10 +9,12 @@ final class RedditApiHelper
     public const API_BASE = 'https://oauth.reddit.com';
     public const AUTH_URL = 'https://www.reddit.com/api/v1/authorize';
     public const TOKEN_URL = 'https://www.reddit.com/api/v1/access_token';
+
     public static function apiUrl(string $endpoint): string
     {
         return self::API_BASE.'/'.ltrim($endpoint, '/');
     }
+
     public static function cleanUsername(string $username): string
     {
         $username = trim($username);
@@ -23,6 +25,7 @@ final class RedditApiHelper
         }
         return $username;
     }
+
     public static function cleanSubreddit(string $name): string
     {
         $name = trim($name);
@@ -31,11 +34,16 @@ final class RedditApiHelper
         }
         return $name;
     }
+
     public static function userAboutEndpoint(string $username): string
     {
         return 'user/'.rawurlencode(self::cleanUsername($username)).'/about';
     }
+
     public static function submitEndpoint(): string { return 'api/submit'; }
+    public static function searchEndpoint(): string { return 'search'; }
+    public static function meEndpoint(): string { return 'api/v1/me'; }
+
     public static function buildSubmitPayload(string $subreddit, string $title, string $kind = 'self', string $bodyOrUrl = ''): array
     {
         $payload = ['api_type' => 'json', 'kind' => $kind, 'sr' => self::cleanSubreddit($subreddit), 'title' => $title];
@@ -46,6 +54,12 @@ final class RedditApiHelper
         }
         return $payload;
     }
+
+    public static function buildSearchQuery(string $query, int $limit = 25, string $sort = 'new'): array
+    {
+        return ['q' => $query, 'limit' => max(1, min(100, $limit)), 'sort' => $sort, 'type' => 'link'];
+    }
+
     public static function mapUserAbout(array $data): array
     {
         $d = $data['data'] ?? $data;
