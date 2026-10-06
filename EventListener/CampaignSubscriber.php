@@ -52,6 +52,9 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             ['Bluesky', 'bluesky.post', 'mautic.social.bluesky.post', 'social.bluesky'],
             ['Reddit', 'reddit.submit', 'mautic.social.reddit.submit', 'social.reddit'],
             ['WhatsApp', 'whatsapp.send', 'mautic.social.whatsapp.send', 'social.whatsapp'],
+            ['LinkedIn', 'linkedin.post', 'mautic.social.linkedin.post', 'social.linkedin'],
+            ['WeChat', 'wechat.send', 'mautic.social.wechat.send', 'social.wechat'],
+            ['WeCom', 'wecom.send', 'mautic.social.wecom.send', 'social.wecom'],
         ] as [$name, $key, $label, $channel]) {
             $integration = $this->integrationHelper->getIntegrationObject($name);
             if (!$integration || !$integration->getIntegrationSettings()->isPublished()) {
@@ -81,6 +84,9 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             'bluesky.post' => $this->campaignEventHelper->sendBlueskyAction($lead, $ev),
             'reddit.submit' => $this->campaignEventHelper->sendRedditAction($lead, $ev),
             'whatsapp.send' => $this->campaignEventHelper->sendWhatsAppAction($lead, $ev),
+            'linkedin.post' => $this->campaignEventHelper->sendLinkedInAction($lead, $ev),
+            'wechat.send' => $this->campaignEventHelper->sendWeChatAction($lead, $ev),
+            'wecom.send' => $this->campaignEventHelper->sendWeComAction($lead, $ev),
             default => null,
         };
 
@@ -96,6 +102,9 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             'bluesky.post' => 'social.bluesky',
             'reddit.submit' => 'social.reddit',
             'whatsapp.send' => 'social.whatsapp',
+            'linkedin.post' => 'social.linkedin',
+            'wechat.send' => 'social.wechat',
+            'wecom.send' => 'social.wecom',
             default => 'social',
         };
         $event->setChannel($channel);

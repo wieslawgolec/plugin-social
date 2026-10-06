@@ -13,6 +13,9 @@ Community modernization of [mautic/plugin-social](https://github.com/mautic/plug
 | **Discord** | ✓ webhook/channel | — | — | ✓ send | — |
 | **Reddit** | ✓ submit | ✓ | ✓ | ✓ submit | ✓ |
 | **WhatsApp** | ✓ text/template | — | — | ✓ send | — |
+| **LinkedIn** | ✓ Posts API | — | ✓ | ✓ post | — |
+| **WeChat OA** | ✓ CS/template | — | ✓ openid | ✓ send | — |
+| **WeCom** | ✓ app msg | — | ✓ userid | ✓ send | — |
 | **Facebook** | Graph v26 | — | ✓ | — | — |
 | **Instagram** | Business Graph | hashtags | business | — | — |
 | **YouTube** | — | ✓ videos | ✓ channel | — | ✓ |
@@ -25,24 +28,21 @@ Community modernization of [mautic/plugin-social](https://github.com/mautic/plug
 ## Campaign actions
 
 - Send Tweet (X)
-- Send Telegram / Discord / WhatsApp message
-- Post to Mastodon / Bluesky
+- Send Telegram / Discord / WhatsApp / WeChat / WeCom message
+- Post to Mastodon / Bluesky / LinkedIn
 - Submit to Reddit (`channelTarget` = subreddit)
 
 ## Monitoring
 
 ```bash
-php bin/console mautic:social:monitor --network=x --query="#mautic"
-php bin/console mautic:social:monitor --network=mastodon --query=mautic
-php bin/console mautic:social:monitor --network=bluesky --query=mautic
-php bin/console mautic:social:monitor --network=reddit --query=php
-php bin/console mautic:social:monitor --network=youtube --query=mautic
-php bin/console mautic:social:monitor --network=yelp --query="coffee|Berlin"
+php bin/console mautic:social:monitor --network=x|mastodon|bluesky|reddit|youtube|yelp --query="..."
 ```
 
-## WhatsApp Cloud API
+## Notes
 
-Keys: access token, Phone number ID, optional WABA ID. Opt-in required. 24h session or approved templates.
+- **LinkedIn**: OAuth2 + Posts API (`w_member_social`); author URN from profile after authorize.
+- **WeChat OA**: AppID/Secret; CS text only within 48h of user message, else templates.
+- **WeCom**: Corp ID + Secret + Agent ID; `touser` = member userid.
 
 ## Tests & CI
 
