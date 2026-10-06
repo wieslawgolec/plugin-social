@@ -29,8 +29,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # PHP 8.6 may still be in development; packages often do not declare support yet.
-          # --ignore-platform-reqs is required so composer can install on 8.6 runners.
+          # PHP 8.6 may still be in development; ignore platform PHP version constraints
           composer update --prefer-dist --no-interaction --no-progress --ignore-platform-reqs
 
       - name: Run PHPUnit

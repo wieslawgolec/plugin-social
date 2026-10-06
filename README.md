@@ -2,75 +2,79 @@
 
 Community modernization of [mautic/plugin-social](https://github.com/mautic/plugin-social) for **Mautic 7.2+**.
 
-Official core plans to **remove** this bundle in Mautic 8.0 because the old APIs were dead. This fork brings the integrations up to date so they remain usable on 7.2.
+Official core plans to **remove** this bundle in Mautic 8.0. This fork modernizes legacy APIs and adds additional networks.
 
-## What changed
+## Platforms
 
-| Area | Before | After |
-|------|--------|--------|
-| **X (Twitter)** | API v1.1 + OAuth 1.0a | **X API v2** + OAuth 2.0 (PKCE-ready), `POST /2/tweets`, recent search, user lookup |
-| **Facebook** | Graph ~v2.8 | **Graph API v26.0** |
-| **Instagram** | Dead consumer API | **Instagram Graph** skeleton for Business/Creator accounts (hashtag search, business discovery) |
-| **Foursquare** | Present but unusable | **Removed** |
-| **Yelp** | — | **New** Places/Fusion skeleton (API key auth) |
-| **Tests** | None usable standalone | PHPUnit 11 unit tests |
-| **CI** | Close-PRs only | PHPUnit matrix PHP **8.2 / 8.5 / 8.6** |
+| Platform | API / auth | Status |
+|----------|------------|--------|
+| **X (Twitter)** | API v2 + OAuth 2.0 | Full rewrite |
+| **Facebook** | Graph **v26.0** | Updated |
+| **Instagram** | Business Graph v26 | Skeleton |
+| **Yelp** | Fusion API (key) | Replaces Foursquare |
+| **Mastodon** | Instance REST + OAuth2 | Skeleton |
+| **Bluesky** | AT Protocol / XRPC | Skeleton |
+| **Google Places** | Places API (New) | Skeleton |
+| **Reddit** | OAuth2 + oauth.reddit.com | Skeleton |
+| **Telegram** | Bot API | Skeleton |
+| **YouTube** | Data API v3 | Skeleton |
+| **Pinterest** | API **v5** | Skeleton |
+| **Discord** | Webhooks + Bot API v10 | Skeleton |
+
+**Removed:** Foursquare (consumer API shut down).
 
 ## Requirements
 
-- Mautic **7.2+** (`mautic/core-lib: ^7.0`)
+- Mautic **7.2+** when installed as a plugin
 - PHP **8.2+**
-- For X: paid / pay-per-use X developer project (no free tier for new apps as of 2026)
-- For Facebook/Instagram: Meta app with appropriate products and App Review where required
-- For Yelp: [Yelp Fusion API key](https://www.yelp.com/developers)
+- Credentials per platform (see setup notes below)
 
 ## Installation
 
 ```bash
-# Composer-based Mautic
-composer require wieslawgolec/plugin-social
-
-# Or copy this repository into plugins/MauticSocialBundle
+# Copy into plugins/MauticSocialBundle or require this package
 php bin/console mautic:plugins:reload
 php bin/console cache:clear
 ```
 
-## X (Twitter) setup
+## Platform setup (short)
 
-1. Create an app in the [X Developer Portal](https://developer.x.com/) inside a Project.
-2. Enable **OAuth 2.0**.
-3. Set the callback URL to the one shown in Mautic plugin settings.
-4. Request scopes: `tweet.read tweet.write users.read offline.access`.
-5. Paste Client ID / Client Secret into the Mautic X integration and authorize.
-6. Ensure billing is enabled (pay-per-use).
+| Platform | What you need |
+|----------|----------------|
+| X | Developer app, OAuth 2.0, scopes `tweet.read tweet.write users.read offline.access`, billing |
+| Facebook / Instagram | Meta app, Graph v26, Login / Instagram Business |
+| Yelp | Fusion API key |
+| Mastodon | Instance URL + OAuth app on that instance |
+| Bluesky | Handle + app password (optional custom PDS) |
+| Google Places | Google Cloud API key (Places API New) |
+| Reddit | Reddit app (script/web), OAuth2 |
+| Telegram | Bot token from @BotFather, chat id |
+| YouTube | Google OAuth client, YouTube Data API enabled |
+| Pinterest | Pinterest app, API v5 OAuth |
+| Discord | Incoming webhook URL and/or bot token |
 
-Campaign “Send Tweet” actions use `POST /2/tweets`. Monitoring uses `GET /2/tweets/search/recent` (last 7 days).
+## Architecture notes
 
-## Facebook setup
+- **Pure helpers** under `Helper/*ApiHelper.php` build URLs and normalize identifiers without Mautic core — covered by PHPUnit.
+- **Integration classes** under `Integration/` wire into Mautic’s plugin framework (`SocialIntegration` / OAuth keys).
+- Campaign “Send Tweet” uses X API v2 via `TwitterIntegration::postTweet()`.
 
-Uses Graph **v26.0**. Enable Facebook Login, set the OAuth redirect URI, request `email,public_profile`. Public arbitrary profile scraping is not supported by Meta; enrichment works for users who authenticated via Login.
-
-## Instagram setup
-
-Business/Creator accounts only (linked Facebook Page). Hashtag search is capped at **30 unique hashtags / 7 days** per account. Full monitoring UX wiring can be extended later from the provided API helpers (`businessDiscovery`, `searchHashtag`).
-
-## Yelp setup
-
-Enter a Yelp Fusion API key. Use `searchBusinesses()` / `getBusiness()` for place data (replacement for Foursquare check-in style data).
-
-## Development / tests
+## Tests & CI
 
 ```bash
 composer install
 vendor/bin/phpunit
 ```
 
-GitHub Actions runs PHPUnit on PHP 8.2, 8.5, and 8.6.
+GitHub Actions matrix: **PHP 8.2, 8.5, 8.6** · **PHPUnit 11.x**
+
+- `composer update --ignore-platform-reqs` so PHP 8.6 (pre-stable) can install packages.
+- Unit tests target API helpers (URL building, parsing, auth endpoints) so CI does not need a full Mautic stack.
+
+## Version
+
+Plugin config version **2.0.0** (modernized fork).
 
 ## License
 
 GPL-3.0-or-later (same as Mautic).
-
-## Upstream
-
-Based on `mautic/plugin-social` 7.x. Prefer contributing API modernization upstream when possible; this fork exists because core intends to drop the bundle in 8.0.

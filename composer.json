@@ -1,9 +1,9 @@
 {
     "name": "wieslawgolec/plugin-social",
-    "description": "Modernized Mautic Social Bundle for Mautic 7.2+ — X API v2, Facebook Graph v26, Instagram Business Graph, Yelp Places (Foursquare removed)",
+    "description": "Modernized Mautic Social Bundle for Mautic 7.2+ with X, Facebook, Instagram, Yelp, Mastodon, Bluesky, Google Places, Reddit, Telegram, YouTube, Pinterest, Discord",
     "type": "mautic-plugin",
     "license": "GPL-3.0-or-later",
-    "keywords": ["mautic", "plugin", "integration", "twitter", "x", "facebook", "instagram", "yelp"],
+    "keywords": ["mautic", "plugin", "social", "twitter", "mastodon", "bluesky", "discord"],
     "extra": {
         "install-directory-name": "MauticSocialBundle"
     },
