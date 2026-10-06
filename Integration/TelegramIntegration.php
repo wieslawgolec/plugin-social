@@ -34,4 +34,16 @@ final class TelegramIntegration extends SocialIntegration
         return TelegramApiHelper::mapSendMessageResult($response) ?? $response;
     }
     public function getFormType() { return null; }
+    public function getFormNotes($section)
+    {
+        $transKey = 'mautic.social.telegram.notes.'.$section;
+        $text = $this->translator->trans($transKey);
+        if ($text !== $transKey) {
+            return [$text, 'info'];
+        }
+        if ('authorization' === $section) {
+            return [$this->translator->trans('mautic.social.oauth.callback_hint'), 'info'];
+        }
+        return parent::getFormNotes($section);
+    }
 }

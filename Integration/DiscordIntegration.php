@@ -15,10 +15,7 @@ final class DiscordIntegration extends SocialIntegration
             'bot_token' => 'mautic.integration.keyfield.bot_token',
         ];
     }
-    public function getApiUrl($endpoint): string
-    {
-        return DiscordApiHelper::apiUrl((string) $endpoint);
-    }
+    public function getApiUrl($endpoint): string { return DiscordApiHelper::apiUrl((string) $endpoint); }
     public function sendWebhookMessage(string $content, ?string $username = null): array|bool
     {
         $parsed = DiscordApiHelper::parseWebhookUrl($this->keys['webhook_url'] ?? '');
@@ -47,4 +44,13 @@ final class DiscordIntegration extends SocialIntegration
         return is_array($response) ? $response : false;
     }
     public function getFormType() { return null; }
+    public function getFormNotes($section)
+    {
+        $transKey = 'mautic.social.discord.notes.'.$section;
+        $text = $this->translator->trans($transKey);
+        if ($text !== $transKey) {
+            return [$text, 'info'];
+        }
+        return parent::getFormNotes($section);
+    }
 }

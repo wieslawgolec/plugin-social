@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 return [
     'name'        => 'Social Media',
-    'description' => 'Modernized social integrations for Mautic 7.2+: X API v2, Facebook Graph v26, Instagram Business Graph, Yelp Places.',
-    'version'     => '2.0.0',
+    'description' => 'Modernized social integrations for Mautic 7.2+. Each plugin configuration screen and campaign action shows capabilities and limits for the operator.',
+    'version'     => '2.1.0',
     'author'      => 'Mautic / community modernization',
 
     'routes' => [
@@ -49,46 +49,17 @@ return [
     'menu' => [
         'main' => [
             'mautic.social.monitoring' => [
-                'route'    => 'mautic_social_index',
-                'parent'   => 'mautic.core.channels',
-                'access'   => 'mauticSocial:monitoring:view',
-                'priority' => 0,
-                'checks'   => [
-                    'integration' => [
-                        'Twitter' => [
-                            'enabled' => true,
-                        ],
-                    ],
-                ],
+                'route'     => 'mautic_social_index',
+                'parent'    => 'mautic.core.channels',
+                'access'    => 'mautic.social:monitoring:view',
+                'priority'  => 100,
             ],
             'mautic.social.tweets' => [
-                'route'    => 'mautic_tweet_index',
-                'access'   => ['mauticSocial:tweets:viewown', 'mauticSocial:tweets:viewother'],
-                'parent'   => 'mautic.core.channels',
-                'priority' => 80,
-                'checks'   => [
-                    'integration' => [
-                        'Twitter' => [
-                            'enabled' => true,
-                        ],
-                    ],
-                ],
+                'route'     => 'mautic_tweet_index',
+                'parent'    => 'mautic.core.channels',
+                'access'    => 'mautic.social:tweets:view',
+                'priority'  => 90,
             ],
         ],
-    ],
-
-    'categories' => [
-        'plugin:mauticSocial' => [
-            'label' => 'mautic.social.monitoring',
-            'class' => MauticPlugin\MauticSocialBundle\Entity\Monitoring::class,
-        ],
-    ],
-
-    'twitter' => [
-        'tweet_request_count' => 100,
-    ],
-
-    'parameters' => [
-        'twitter_handle_field' => 'twitter',
     ],
 ];
