@@ -5,7 +5,6 @@ namespace MauticPlugin\MauticSocialBundle\Helper;
 use Mautic\AssetBundle\Helper\TokenHelper as AssetTokenHelper;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Helper\TokenHelper;
-use Mautic\PageBundle\Entity\Trackable;
 use Mautic\PageBundle\Helper\TokenHelper as PageTokenHelper;
 use Mautic\PageBundle\Model\TrackableModel;
 use Mautic\PluginBundle\Helper\IntegrationHelper;
@@ -65,8 +64,7 @@ final class CampaignEventHelper
         }
         $leadArray = $lead->getProfileFields();
         $message = $this->parseLeadText($message, $leadArray);
-        $chatId = $props['channelTarget'] ?? $leadArray['telegram'] ?? null;
-        $result = $integration->sendMessage($message, $chatId);
+        $result = $integration->sendMessage($message, $props['channelTarget'] ?? $leadArray['telegram'] ?? null);
         if (is_array($result) && (isset($result['message_id']) || isset($result['ok']))) {
             return ['timeline' => $message, 'response' => $result];
         }
@@ -104,15 +102,14 @@ final class CampaignEventHelper
     {
         $integration = $this->integrationHelper->getIntegrationObject('Mastodon');
         if (!$integration || !method_exists($integration, 'postStatus')) {
-            return ['failed' => 1, 'response' => 'Mastodon integration unavailable'];
+            return ['failed' => 1, 'response' => 'Mastodon unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
         if ('' === trim($message)) {
             return ['failed' => 1, 'response' => 'Empty message'];
         }
-        $leadArray = $lead->getProfileFields();
-        $message = $this->parseLeadText($message, $leadArray);
+        $message = $this->parseLeadText($message, $lead->getProfileFields());
         $result = $integration->postStatus($message);
         if (is_array($result) && isset($result['id'])) {
             return ['timeline' => $message, 'response' => $result];
@@ -124,49 +121,42 @@ final class CampaignEventHelper
     {
         $integration = $this->integrationHelper->getIntegrationObject('Bluesky');
         if (!$integration || !method_exists($integration, 'postText')) {
-            return ['failed' => 1, 'response' => 'Bluesky integration unavailable'];
+            return ['failed' => 1, 'response' => 'Bluesky unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
         if ('' === trim($message)) {
             return ['failed' => 1, 'response' => 'Empty message'];
         }
-        $leadArray = $lead->getProfileFields();
-        $message = $this->parseLeadText($message, $leadArray);
+        $message = $this->parseLeadText($message, $lead->getProfileFields());
         $result = $integration->postText($message);
         if (is_array($result) && (isset($result['uri']) || isset($result['cid']))) {
             return ['timeline' => $message, 'response' => $result];
         }
-        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'Bluesky post failed'];
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
     }
 
     public function sendRedditAction(Lead $lead, array $event): array|false
     {
         $integration = $this->integrationHelper->getIntegrationObject('Reddit');
         if (!$integration || !method_exists($integration, 'submitPost')) {
-            return ['failed' => 1, 'response' => 'Reddit integration unavailable'];
+            return ['failed' => 1, 'response' => 'Reddit unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
-        $subreddit = (string) ($props['channelTarget'] ?? 'test');
         if ('' === trim($message)) {
             return ['failed' => 1, 'response' => 'Empty message'];
         }
-        $leadArray = $lead->getProfileFields();
-        $message = $this->parseLeadText($message, $leadArray);
-        $title = mb_substr($message, 0, 100);
-        $result = $integration->submitPost($subreddit, $title, $message, 'self');
-        if (is_array($result)) {
-            return ['timeline' => $message, 'response' => $result];
-        }
-        return ['failed' => 1, 'response' => 'Reddit submit failed'];
+        $message = $this->parseLeadText($message, $lead->getProfileFields());
+        $result = $integration->submitPost((string) ($props['channelTarget'] ?? 'test'), mb_substr($message, 0, 100), $message, 'self');
+        return is_array($result) ? ['timeline' => $message, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
     }
 
     public function sendWhatsAppAction(Lead $lead, array $event): array|false
     {
         $integration = $this->integrationHelper->getIntegrationObject('WhatsApp');
         if (!$integration || !method_exists($integration, 'sendText')) {
-            return ['failed' => 1, 'response' => 'WhatsApp integration unavailable'];
+            return ['failed' => 1, 'response' => 'WhatsApp unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
@@ -183,34 +173,33 @@ final class CampaignEventHelper
         if (is_array($result) && isset($result['message_id'])) {
             return ['timeline' => $message, 'response' => $result];
         }
-        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'WhatsApp send failed'];
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
     }
 
     public function sendLinkedInAction(Lead $lead, array $event): array|false
     {
         $integration = $this->integrationHelper->getIntegrationObject('LinkedIn');
         if (!$integration || !method_exists($integration, 'postText')) {
-            return ['failed' => 1, 'response' => 'LinkedIn integration unavailable'];
+            return ['failed' => 1, 'response' => 'LinkedIn unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
         if ('' === trim($message)) {
             return ['failed' => 1, 'response' => 'Empty message'];
         }
-        $leadArray = $lead->getProfileFields();
-        $message = $this->parseLeadText($message, $leadArray);
+        $message = $this->parseLeadText($message, $lead->getProfileFields());
         $result = $integration->postText($message);
         if (is_array($result) && empty($result['failed']) && empty($result['error'])) {
             return ['timeline' => $message, 'response' => $result];
         }
-        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'LinkedIn post failed'];
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
     }
 
     public function sendWeChatAction(Lead $lead, array $event): array|false
     {
         $integration = $this->integrationHelper->getIntegrationObject('WeChat');
         if (!$integration || !method_exists($integration, 'sendText')) {
-            return ['failed' => 1, 'response' => 'WeChat integration unavailable'];
+            return ['failed' => 1, 'response' => 'WeChat unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
@@ -227,14 +216,14 @@ final class CampaignEventHelper
         if (is_array($result) && (empty($result['errcode']) || 0 === (int) ($result['errcode'] ?? -1))) {
             return ['timeline' => $message, 'response' => $result];
         }
-        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'WeChat send failed'];
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
     }
 
     public function sendWeComAction(Lead $lead, array $event): array|false
     {
         $integration = $this->integrationHelper->getIntegrationObject('WeCom');
         if (!$integration || !method_exists($integration, 'sendText')) {
-            return ['failed' => 1, 'response' => 'WeCom integration unavailable'];
+            return ['failed' => 1, 'response' => 'WeCom unavailable'];
         }
         $props = $event['properties'] ?? $event;
         $message = (string) ($props['message'] ?? '');
@@ -251,7 +240,46 @@ final class CampaignEventHelper
         if (is_array($result) && isset($result['errcode']) && 0 === (int) $result['errcode']) {
             return ['timeline' => $message, 'response' => $result];
         }
-        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'WeCom send failed'];
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
+    }
+
+    public function sendTwitchAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('Twitch');
+        if (!$integration || !method_exists($integration, 'sendChatMessage')) {
+            return ['failed' => 1, 'response' => 'Twitch unavailable'];
+        }
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+        $message = $this->parseLeadText($message, $lead->getProfileFields());
+        $broadcaster = (string) ($props['channelTarget'] ?? '');
+        $result = $integration->sendChatMessage($message, '' !== $broadcaster ? $broadcaster : null);
+        if (is_array($result) && empty($result['error'])) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
+    }
+
+    public function sendRumbleAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('Rumble');
+        if (!$integration || !method_exists($integration, 'publishMeta')) {
+            return ['failed' => 1, 'response' => 'Rumble unavailable'];
+        }
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+        $message = $this->parseLeadText($message, $lead->getProfileFields());
+        $result = $integration->publishMeta(mb_substr($message, 0, 100), $message);
+        if (is_array($result) && empty($result['error'])) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'failed'];
     }
 
     private function parseLeadText(string $text, array $lead, ?int $channelId = -1): string
@@ -262,14 +290,9 @@ final class CampaignEventHelper
             $this->pageTokenHelper->findPageTokens($text, $this->clickthrough),
             $this->assetTokenHelper->findAssetTokens($text, $this->clickthrough)
         );
-        [$text, $trackables] = $this->trackableModel->parseContentForTrackables(
-            $text, $tokens, 'social_message', $channelId ?? -1
-        );
+        [$text, $trackables] = $this->trackableModel->parseContentForTrackables($text, $tokens, 'social_message', $channelId ?? -1);
         foreach ($trackables as $token => $trackable) {
-            $tokens[$token] = $this->trackableModel->generateTrackableUrl(
-                $trackable,
-                array_merge($this->clickthrough, ['lead' => $lead['id'] ?? 0])
-            );
+            $tokens[$token] = $this->trackableModel->generateTrackableUrl($trackable, array_merge($this->clickthrough, ['lead' => $lead['id'] ?? 0]));
         }
         return str_replace(array_keys($tokens), array_values($tokens), $text);
     }
