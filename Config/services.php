@@ -38,6 +38,9 @@ return function (ContainerConfigurator $configurator): void {
     $services->set('mautic.integration.pinterest', MauticPlugin\MauticSocialBundle\Integration\PinterestIntegration::class);
     $services->set('mautic.integration.discord', MauticPlugin\MauticSocialBundle\Integration\DiscordIntegration::class);
     $services->set('mautic.integration.whatsapp', MauticPlugin\MauticSocialBundle\Integration\WhatsAppIntegration::class);
+    $services->set('mautic.integration.linkedin', MauticPlugin\MauticSocialBundle\Integration\LinkedInIntegration::class);
+    $services->set('mautic.integration.wechat', MauticPlugin\MauticSocialBundle\Integration\WeChatIntegration::class);
+    $services->set('mautic.integration.wecom', MauticPlugin\MauticSocialBundle\Integration\WeComIntegration::class);
 
     $services->alias('mautic.social.repository.lead', MauticPlugin\MauticSocialBundle\Entity\LeadRepository::class);
     $services->alias('mautic.social.model.monitoring', MauticPlugin\MauticSocialBundle\Model\MonitoringModel::class);
