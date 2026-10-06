@@ -26,67 +26,125 @@ final class CampaignEventHelper
 
     public function sendTweetAction(Lead $lead, array $event): array|false
     {
-        $tweetSent   = false;
-        $tweetEntity = $this->tweetModel->getEntity($event['channelId']);
-
+        $tweetEntity = $this->tweetModel->getEntity($event['channelId'] ?? null);
         if (!$tweetEntity) {
-            return ['failed' => 1, 'response' => 'Tweet entity '.$event['channelId'].' not found'];
+            return ['failed' => 1, 'response' => 'Tweet entity not found'];
         }
 
-        /** @var \MauticPlugin\MauticSocialBundle\Integration\TwitterIntegration $twitterIntegration */
         $twitterIntegration = $this->integrationHelper->getIntegrationObject('Twitter');
+        if (!$twitterIntegration) {
+            return ['failed' => 1, 'response' => 'Twitter integration unavailable'];
+        }
 
-        // Setup clickthrough for URLs in tweet
-        $this->clickthrough = [
-            'source' => ['campaign', $event['campaign']['id']],
-        ];
-
+        $this->clickthrough = ['source' => ['campaign', $event['campaign']['id'] ?? 0]];
         $leadArray = $lead->getProfileFields();
         if (empty($leadArray['twitter'])) {
             return false;
         }
 
-        $tweetText = $tweetEntity->getText();
-        $tweetText = $this->parseTweetText($tweetText, $leadArray, $tweetEntity->getId());
-        // Post via X API v2
+        $tweetText = $this->parseLeadText($tweetEntity->getText(), $leadArray, $tweetEntity->getId());
         $sendResponse = $twitterIntegration->postTweet($tweetText);
 
-        // verify the tweet was sent by checking for a tweet id
         if (is_array($sendResponse) && (array_key_exists('id_str', $sendResponse) || isset($sendResponse['data']['id']))) {
-            $tweetSent = true;
-        }
-
-        if ($tweetSent) {
-            $this->tweetModel->registerSend($tweetEntity, $lead, $sendResponse, 'campaign.event', $event['id']);
+            $this->tweetModel->registerSend($tweetEntity, $lead, $sendResponse, 'campaign.event', $event['id'] ?? null);
 
             return ['timeline' => $tweetText, 'response' => $sendResponse];
         }
 
         $response = ['failed' => 1, 'response' => $sendResponse];
-        if (!empty($sendResponse['error']['message'])) {
+        if (is_array($sendResponse) && !empty($sendResponse['error']['message'])) {
             $response['reason'] = $sendResponse['error']['message'];
         }
 
         return $response;
     }
 
-    /**
-     * PreParse the twitter message and replace placeholders with values.
-     *
-     * @param string $text
-     *
-     * @return string|string[]
-     */
-    private function parseTweetText($text, array $lead, ?int $channelId = -1): array|string
+    public function sendTelegramAction(Lead $lead, array $event): array|false
     {
-        $tweetHandle = $lead['twitter'];
-        $tokens      = [
-            '{twitter_handle}' => (str_contains($tweetHandle, '@')) ? $tweetHandle : "@{$tweetHandle}",
-        ];
+        $integration = $this->integrationHelper->getIntegrationObject('Telegram');
+        if (!$integration || !method_exists($integration, 'sendMessage')) {
+            return ['failed' => 1, 'response' => 'Telegram integration unavailable'];
+        }
 
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+
+        $leadArray = $lead->getProfileFields();
+        $message = $this->parseLeadText($message, $leadArray);
+        $chatId = $props['channelTarget'] ?? $leadArray['telegram'] ?? null;
+        $result = $integration->sendMessage($message, $chatId);
+
+        if (is_array($result) && (isset($result['message_id']) || isset($result['ok']))) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+
+        return ['failed' => 1, 'response' => $result];
+    }
+
+    public function sendDiscordAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('Discord');
+        if (!$integration) {
+            return ['failed' => 1, 'response' => 'Discord integration unavailable'];
+        }
+
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+
+        $leadArray = $lead->getProfileFields();
+        $message = $this->parseLeadText($message, $leadArray);
+        $target = (string) ($props['channelTarget'] ?? '');
+
+        if ('' !== $target && method_exists($integration, 'sendChannelMessage') && !str_contains($target, 'webhook')) {
+            $result = $integration->sendChannelMessage($target, $message);
+        } elseif (method_exists($integration, 'sendWebhookMessage')) {
+            $result = $integration->sendWebhookMessage($message);
+        } else {
+            return ['failed' => 1, 'response' => 'Discord send method missing'];
+        }
+
+        if (false === $result) {
+            return ['failed' => 1, 'response' => 'Discord send failed'];
+        }
+
+        return ['timeline' => $message, 'response' => $result];
+    }
+
+    public function sendMastodonAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('Mastodon');
+        if (!$integration || !method_exists($integration, 'postStatus')) {
+            return ['failed' => 1, 'response' => 'Mastodon integration unavailable'];
+        }
+
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+
+        $leadArray = $lead->getProfileFields();
+        $message = $this->parseLeadText($message, $leadArray);
+        $result = $integration->postStatus($message);
+
+        if (is_array($result) && isset($result['id'])) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+
+        return ['failed' => 1, 'response' => $result];
+    }
+
+    private function parseLeadText(string $text, array $lead, ?int $channelId = -1): string
+    {
+        $tokens = TokenHelper::findLeadTokens($text, $lead);
         $tokens = array_merge(
             $tokens,
-            TokenHelper::findLeadTokens($text, $lead),
             $this->pageTokenHelper->findPageTokens($text, $this->clickthrough),
             $this->assetTokenHelper->findAssetTokens($text, $this->clickthrough)
         );
@@ -94,16 +152,15 @@ final class CampaignEventHelper
         [$text, $trackables] = $this->trackableModel->parseContentForTrackables(
             $text,
             $tokens,
-            'social_twitter',
-            $channelId
+            'social_message',
+            $channelId ?? -1
         );
 
-        /**
-         * @var string    $token
-         * @var Trackable $trackable
-         */
         foreach ($trackables as $token => $trackable) {
-            $tokens[$token] = $this->trackableModel->generateTrackableUrl($trackable, array_merge($this->clickthrough, ['lead' => $lead['id']]));
+            $tokens[$token] = $this->trackableModel->generateTrackableUrl(
+                $trackable,
+                array_merge($this->clickthrough, ['lead' => $lead['id'] ?? 0])
+            );
         }
 
         return str_replace(array_keys($tokens), array_values($tokens), $text);

@@ -6,26 +6,46 @@ Community modernization of [mautic/plugin-social](https://github.com/mautic/plug
 
 | Platform | API / auth | Capabilities |
 |----------|------------|--------------|
-| **X (Twitter)** | API v2 + OAuth 2.0 | Post, search, profile, monitoring |
+| **X (Twitter)** | API v2 + OAuth 2.0 | Post, search, profile, campaign, monitoring |
 | **Facebook** | Graph v26.0 | Login, profile |
 | **Instagram** | Business Graph v26 | Business discovery, hashtags |
 | **Yelp** | Fusion API | Place search / details |
-| **Mastodon** | Instance OAuth2 | Post status, account lookup |
-| **Bluesky** | AT Protocol | Session + post, profile |
+| **Mastodon** | Instance OAuth2 | Post status, campaign action, tag monitor |
+| **Bluesky** | AT Protocol | Post, profile, search monitor |
 | **Google Places** | Places API (New) | Text search, place details |
-| **Reddit** | OAuth2 | Submit, user about |
-| **Telegram** | Bot API | sendMessage |
+| **Reddit** | OAuth2 | Submit, user about, subreddit monitor |
+| **Telegram** | Bot API | sendMessage, campaign action |
 | **YouTube** | Data API v3 | Channel lookup |
 | **Pinterest** | API v5 | Pins, user account |
-| **Discord** | Webhooks + Bot v10 | Webhook post, channel message |
+| **Discord** | Webhooks + Bot v10 | Webhook/channel send, campaign action |
 
 **Removed:** Foursquare.
 
-## Architecture
+## Campaign actions
 
-- `Helper/*ApiHelper.php` — pure URL builders, payloads, response mappers (PHPUnit-covered, no Mautic core).
-- `Integration/*Integration.php` — Mautic plugin wiring + `post*` / `getUserData` / send methods using helpers.
-- Campaign tweet send uses `TwitterIntegration::postTweet()` (X API v2).
+When the integration is published, Campaign Builder shows:
+
+- **Send Tweet** (X) — existing tweet entity picker
+- **Send Telegram message** — free-text + optional chat id
+- **Send Discord message** — free-text; optional channel id (else webhook)
+- **Post to Mastodon** — free-text status
+
+Lead tokens (`{contactfield=...}`) are supported in message bodies.
+
+## Monitoring cron
+
+```bash
+php bin/console mautic:social:monitor --network=x --query="#mautic" --limit=20
+php bin/console mautic:social:monitor --network=mastodon --query=mautic
+php bin/console mautic:social:monitor --network=bluesky --query=mautic
+php bin/console mautic:social:monitor --network=reddit --query=php
+```
+
+Schedule via system cron as needed. Legacy Twitter hashtag/mention commands remain available.
+
+## OAuth / tokens
+
+Authorization screens include provider-specific callback and scope hints. Access tokens are stored **encrypted** on the integration settings (Mautic core encryptApiKeys), same as other plugins.
 
 ## Tests & CI
 
@@ -34,7 +54,7 @@ composer update --ignore-platform-reqs
 vendor/bin/phpunit
 ```
 
-Matrix: **PHP 8.2 / 8.5 / 8.6**, **PHPUnit 11.5**, with `--ignore-platform-reqs` for PHP 8.6.
+Matrix: **PHP 8.2 / 8.5 / 8.6**, PHPUnit **11.5**, `--ignore-platform-reqs` for PHP 8.6.
 
 ## License
 
