@@ -17,23 +17,17 @@ final class WhatsAppIntegration extends SocialIntegration
             'waba_id' => 'mautic.integration.keyfield.waba_id',
         ];
     }
-    public function getApiUrl($endpoint): string
-    {
-        return WhatsAppApiHelper::url((string) $endpoint);
-    }
+    public function getApiUrl($endpoint): string { return WhatsAppApiHelper::url((string) $endpoint); }
     public function sendText(string $toPhone, string $body): array|false
     {
         $response = $this->makeRequest(
             WhatsAppApiHelper::messagesUrl($this->keys['phone_number_id'] ?? ''),
             WhatsAppApiHelper::buildTextMessagePayload($toPhone, $body),
             'POST',
-            [
-                'encode_parameters' => false,
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer '.($this->keys['access_token'] ?? ''),
-                ],
-            ]
+            ['encode_parameters' => false, 'headers' => [
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.($this->keys['access_token'] ?? ''),
+            ]]
         );
         if (!is_array($response)) {
             return false;
@@ -46,13 +40,10 @@ final class WhatsAppIntegration extends SocialIntegration
             WhatsAppApiHelper::messagesUrl($this->keys['phone_number_id'] ?? ''),
             WhatsAppApiHelper::buildTemplatePayload($toPhone, $templateName, $lang, $params),
             'POST',
-            [
-                'encode_parameters' => false,
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Bearer '.($this->keys['access_token'] ?? ''),
-                ],
-            ]
+            ['encode_parameters' => false, 'headers' => [
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.($this->keys['access_token'] ?? ''),
+            ]]
         );
         if (!is_array($response)) {
             return false;
@@ -62,11 +53,10 @@ final class WhatsAppIntegration extends SocialIntegration
     public function getFormType() { return null; }
     public function getFormNotes($section)
     {
-        if ('authorization' === $section) {
-            return [
-                'WhatsApp Cloud API: Meta Business app + WhatsApp product. Use Phone number ID and permanent token. Opt-in required. 24h session window or approved templates.',
-                'info',
-            ];
+        $transKey = 'mautic.social.whatsapp.notes.'.$section;
+        $text = $this->translator->trans($transKey);
+        if ($text !== $transKey) {
+            return [$text, 'info'];
         }
         return parent::getFormNotes($section);
     }

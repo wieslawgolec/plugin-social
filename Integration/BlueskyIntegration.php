@@ -53,4 +53,13 @@ final class BlueskyIntegration extends SocialIntegration
         }
     }
     public function getFormType() { return null; }
+    public function getFormNotes($section)
+    {
+        $transKey = 'mautic.social.bluesky.notes.'.$section;
+        $text = $this->translator->trans($transKey);
+        if ($text !== $transKey) {
+            return [$text, 'info'];
+        }
+        return parent::getFormNotes($section);
+    }
 }

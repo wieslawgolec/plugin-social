@@ -37,7 +37,7 @@ final class MastodonIntegration extends SocialIntegration
             'POST',
             ['encode_parameters' => false, 'headers' => ['Content-Type' => 'application/json']]
         );
-        return is_array($response) && isset($response['id']) ? $response : (is_array($response) ? $response : false);
+        return is_array($response) ? $response : false;
     }
     public function getUserData($identifier, &$socialCache): void
     {
@@ -48,4 +48,16 @@ final class MastodonIntegration extends SocialIntegration
         }
     }
     public function getFormType() { return null; }
+    public function getFormNotes($section)
+    {
+        $transKey = 'mautic.social.mastodon.notes.'.$section;
+        $text = $this->translator->trans($transKey);
+        if ($text !== $transKey) {
+            return [$text, 'info'];
+        }
+        if ('authorization' === $section) {
+            return [$this->translator->trans('mautic.social.oauth.callback_hint'), 'info'];
+        }
+        return parent::getFormNotes($section);
+    }
 }

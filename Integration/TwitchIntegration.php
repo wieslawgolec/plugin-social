@@ -29,9 +29,7 @@ final class TwitchIntegration extends SocialIntegration
     public function getUserData($identifier, &$socialCache): void
     {
         $login = '' !== (string) $identifier ? TwitchApiHelper::cleanLogin((string) $identifier) : null;
-        $response = $this->makeRequest(TwitchApiHelper::usersUrl(), TwitchApiHelper::buildUsersQuery($login), 'GET', [
-            'headers' => $this->helixHeaders(),
-        ]);
+        $response = $this->makeRequest(TwitchApiHelper::usersUrl(), TwitchApiHelper::buildUsersQuery($login), 'GET', ['headers' => $this->helixHeaders()]);
         $user = is_array($response) ? ($response['data'][0] ?? null) : null;
         if (is_array($user)) {
             $socialCache['profile'] = TwitchApiHelper::mapUser($user);
@@ -43,12 +41,7 @@ final class TwitchIntegration extends SocialIntegration
     }
     public function searchChannels(string $query, int $first = 20): array|false
     {
-        $response = $this->makeRequest(
-            TwitchApiHelper::searchChannelsUrl(),
-            TwitchApiHelper::buildSearchChannelsQuery($query, $first),
-            'GET',
-            ['headers' => $this->helixHeaders()]
-        );
+        $response = $this->makeRequest(TwitchApiHelper::searchChannelsUrl(), TwitchApiHelper::buildSearchChannelsQuery($query, $first), 'GET', ['headers' => $this->helixHeaders()]);
         return is_array($response) ? $response : false;
     }
     public function getStreams(?string $userLogin = null, int $first = 20): array|false
@@ -78,8 +71,13 @@ final class TwitchIntegration extends SocialIntegration
     public function getFormType() { return null; }
     public function getFormNotes($section)
     {
+        $transKey = 'mautic.social.twitch.notes.'.$section;
+        $text = $this->translator->trans($transKey);
+        if ($text !== $transKey) {
+            return [$text, 'info'];
+        }
         if ('authorization' === $section) {
-            return ['Twitch: set OAuth redirect to Mautic callback. Client-Id required on Helix calls. Scopes user:read:email user:write:chat.', 'info'];
+            return [$this->translator->trans('mautic.social.oauth.callback_hint'), 'info'];
         }
         return parent::getFormNotes($section);
     }
