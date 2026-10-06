@@ -15,18 +15,35 @@ final class TwitchApiHelper
         return self::API_BASE.'/'.ltrim($endpoint, '/');
     }
 
-    public static function usersUrl(): string { return self::url('users'); }
-    public static function searchChannelsUrl(): string { return self::url('search/channels'); }
-    public static function streamsUrl(): string { return self::url('streams'); }
-    public static function chatMessagesUrl(): string { return self::url('chat/messages'); }
+    public static function usersUrl(): string
+    {
+        return self::url('users');
+    }
+
+    public static function searchChannelsUrl(): string
+    {
+        return self::url('search/channels');
+    }
+
+    public static function streamsUrl(): string
+    {
+        return self::url('streams');
+    }
+
+    public static function chatMessagesUrl(): string
+    {
+        return self::url('chat/messages');
+    }
 
     public static function cleanLogin(string $login): string
     {
         $login = trim($login);
         $login = ltrim($login, '@');
-        if (preg_match('#twitch\.tv/([^/?#]+)#i', $login, $m)) {
+        // Use ~ delimiter so # is not treated as pattern terminator
+        if (preg_match('~twitch\.tv/([^/?&]+)~i', $login, $m)) {
             return strtolower($m[1]);
         }
+
         return strtolower($login);
     }
 
@@ -39,17 +56,25 @@ final class TwitchApiHelper
         if (null !== $id && '' !== $id) {
             $q['id'] = $id;
         }
+
         return $q;
     }
 
     public static function buildSearchChannelsQuery(string $query, int $first = 20): array
     {
-        return ['query' => $query, 'first' => max(1, min(100, $first))];
+        return [
+            'query' => $query,
+            'first' => max(1, min(100, $first)),
+        ];
     }
 
     public static function buildChatMessagePayload(string $broadcasterId, string $senderId, string $message): array
     {
-        return ['broadcaster_id' => $broadcasterId, 'sender_id' => $senderId, 'message' => $message];
+        return [
+            'broadcaster_id' => $broadcasterId,
+            'sender_id' => $senderId,
+            'message' => $message,
+        ];
     }
 
     public static function mapUser(array $user): array

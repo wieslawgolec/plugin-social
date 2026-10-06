@@ -23,9 +23,14 @@ final class RumbleApiHelper
     {
         $slug = trim($slug);
         $slug = ltrim($slug, '@/');
-        if (preg_match('#rumble\.com/(?:c-)?([^/?#]+)#i', $slug, $m)) {
+        // Use ~ delimiter so # is not treated as pattern terminator
+        if (preg_match('~rumble\.com/(?:c-)?([^/?&]+)~i', $slug, $m)) {
             return $m[1];
         }
+        if (str_starts_with($slug, 'c-')) {
+            return substr($slug, 2);
+        }
+
         return $slug;
     }
 
@@ -35,15 +40,21 @@ final class RumbleApiHelper
         if (!str_starts_with($slug, 'c-') && !str_starts_with($slug, 'user/')) {
             return self::url('c-'.$slug);
         }
+
         return self::url($slug);
     }
 
     public static function buildVideoMetaPayload(string $title, string $description = '', string $visibility = 'public', ?string $channel = null): array
     {
-        $payload = ['title' => $title, 'description' => $description, 'visibility' => $visibility];
+        $payload = [
+            'title' => $title,
+            'description' => $description,
+            'visibility' => $visibility,
+        ];
         if (null !== $channel && '' !== $channel) {
             $payload['channel'] = self::cleanChannelSlug($channel);
         }
+
         return $payload;
     }
 
