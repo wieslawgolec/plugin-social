@@ -1,11 +1,7 @@
 <?php
-
 declare(strict_types=1);
-
 namespace MauticPlugin\MauticSocialBundle\Integration;
-
 use MauticPlugin\MauticSocialBundle\Helper\MastodonApiHelper;
-
 final class MastodonIntegration extends SocialIntegration
 {
     public function getName(): string { return 'Mastodon'; }
@@ -26,12 +22,30 @@ final class MastodonIntegration extends SocialIntegration
     }
     public function getAuthenticationUrl(): string
     {
-        return rtrim($this->keys['instance_url'] ?? 'https://mastodon.social', '/').'/oauth/authorize';
+        return MastodonApiHelper::oauthAuthorizeUrl($this->keys['instance_url'] ?? 'https://mastodon.social');
     }
     public function getAccessTokenUrl(): string
     {
-        return rtrim($this->keys['instance_url'] ?? 'https://mastodon.social', '/').'/oauth/token';
+        return MastodonApiHelper::oauthTokenUrl($this->keys['instance_url'] ?? 'https://mastodon.social');
     }
     public function getAuthScope(): string { return 'read write'; }
+    public function postStatus(string $text, string $visibility = 'public'): array|false
+    {
+        $response = $this->makeRequest(
+            $this->getApiUrl(MastodonApiHelper::statusesEndpoint()),
+            MastodonApiHelper::buildStatusPayload($text, $visibility),
+            'POST',
+            ['encode_parameters' => false, 'headers' => ['Content-Type' => 'application/json']]
+        );
+        return is_array($response) && isset($response['id']) ? $response : (is_array($response) ? $response : false);
+    }
+    public function getUserData($identifier, &$socialCache): void
+    {
+        $response = $this->makeRequest($this->getApiUrl(MastodonApiHelper::accountLookupEndpoint((string) $identifier)), [], 'GET');
+        if (is_array($response) && isset($response['id'])) {
+            $socialCache['profile'] = MastodonApiHelper::mapAccountToProfile($response);
+            $socialCache['id'] = $response['id'];
+        }
+    }
     public function getFormType() { return null; }
 }
