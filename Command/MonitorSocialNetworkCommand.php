@@ -14,7 +14,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'mautic:social:monitor', description: 'Run social network monitoring (x|mastodon|bluesky|reddit)')]
+#[AsCommand(name: 'mautic:social:monitor', description: 'Run social network monitoring (x|mastodon|bluesky|reddit|youtube|yelp)')]
 final class MonitorSocialNetworkCommand extends Command
 {
     public function __construct(
@@ -26,7 +26,7 @@ final class MonitorSocialNetworkCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addOption('network', null, InputOption::VALUE_REQUIRED, 'Network: x|mastodon|bluesky|reddit')
+            ->addOption('network', null, InputOption::VALUE_REQUIRED, 'Network: x|mastodon|bluesky|reddit|youtube|yelp')
             ->addOption('query', null, InputOption::VALUE_REQUIRED, 'Search query / hashtag / subreddit')
             ->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Max results', 20);
     }
@@ -39,7 +39,6 @@ final class MonitorSocialNetworkCommand extends Command
 
         if ('' === $network || '' === $query) {
             $output->writeln('<error>--network and --query are required</error>');
-
             return Command::FAILURE;
         }
 
@@ -50,17 +49,17 @@ final class MonitorSocialNetworkCommand extends Command
             'mastodon' => $this->monitorMastodon($query, $limit, $output),
             'bluesky' => $this->monitorBluesky($query, $limit, $output),
             'reddit' => $this->monitorReddit($query, $limit, $output),
+            'youtube' => $this->monitorYouTube($query, $limit, $output),
+            'yelp' => $this->monitorYelp($query, $limit, $output),
             default => -1,
         };
 
         if (-1 === $count) {
-            $output->writeln('<error>Unknown network. Use x|mastodon|bluesky|reddit</error>');
-
+            $output->writeln('<error>Unknown network. Use x|mastodon|bluesky|reddit|youtube|yelp</error>');
             return Command::FAILURE;
         }
 
         $output->writeln(sprintf('<info>Fetched %d item(s)</info>', $count));
-
         return Command::SUCCESS;
     }
 
@@ -69,7 +68,6 @@ final class MonitorSocialNetworkCommand extends Command
         $integration = $this->integrationHelper->getIntegrationObject('Twitter');
         if (!$integration || !method_exists($integration, 'searchRecent')) {
             $output->writeln('<error>X/Twitter integration not available</error>');
-
             return 0;
         }
         $q = str_starts_with($query, '#') ? XApiV2Client::buildSearchQueryForHashtag($query) : $query;
@@ -78,7 +76,6 @@ final class MonitorSocialNetworkCommand extends Command
         foreach ($data as $tweet) {
             $output->writeln(sprintf(' - [%s] %s', $tweet['id'] ?? '?', mb_substr($tweet['text'] ?? '', 0, 80)));
         }
-
         return count($data);
     }
 
@@ -87,7 +84,6 @@ final class MonitorSocialNetworkCommand extends Command
         $integration = $this->integrationHelper->getIntegrationObject('Mastodon');
         if (!$integration) {
             $output->writeln('<error>Mastodon integration not available</error>');
-
             return 0;
         }
         $tag = ltrim($query, '#');
@@ -110,7 +106,6 @@ final class MonitorSocialNetworkCommand extends Command
                 mb_substr(strip_tags($status['content'] ?? ''), 0, 80)
             ));
         }
-
         return count($response);
     }
 
@@ -119,7 +114,6 @@ final class MonitorSocialNetworkCommand extends Command
         $integration = $this->integrationHelper->getIntegrationObject('Bluesky');
         if (!$integration) {
             $output->writeln('<error>Bluesky integration not available</error>');
-
             return 0;
         }
         $url = BlueskyApiHelper::xrpcUrl(BlueskyApiHelper::PUBLIC_API, 'app.bsky.feed.searchPosts');
@@ -132,7 +126,6 @@ final class MonitorSocialNetworkCommand extends Command
                 mb_substr($post['record']['text'] ?? '', 0, 80)
             ));
         }
-
         return count($posts);
     }
 
@@ -141,7 +134,6 @@ final class MonitorSocialNetworkCommand extends Command
         $integration = $this->integrationHelper->getIntegrationObject('Reddit');
         if (!$integration) {
             $output->writeln('<error>Reddit integration not available</error>');
-
             return 0;
         }
         $sr = RedditApiHelper::cleanSubreddit($query);
@@ -154,7 +146,46 @@ final class MonitorSocialNetworkCommand extends Command
         foreach ($children as $child) {
             $output->writeln(sprintf(' - %s', mb_substr($child['data']['title'] ?? '', 0, 80)));
         }
-
         return count($children);
+    }
+
+    private function monitorYouTube(string $query, int $limit, OutputInterface $output): int
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('YouTube');
+        if (!$integration || !method_exists($integration, 'search')) {
+            $output->writeln('<error>YouTube integration not available</error>');
+            return 0;
+        }
+        $response = $integration->search($query, $limit);
+        $items = is_array($response) ? ($response['items'] ?? []) : [];
+        foreach ($items as $item) {
+            $title = $item['snippet']['title'] ?? '';
+            $vid = $item['id']['videoId'] ?? '';
+            $output->writeln(sprintf(' - [%s] %s', $vid, mb_substr($title, 0, 80)));
+        }
+        return count($items);
+    }
+
+    private function monitorYelp(string $query, int $limit, OutputInterface $output): int
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('Yelp');
+        if (!$integration || !method_exists($integration, 'searchBusinesses')) {
+            $output->writeln('<error>Yelp integration not available</error>');
+            return 0;
+        }
+        $parts = array_map('trim', explode('|', $query, 2));
+        $term = $parts[0];
+        $location = $parts[1] ?? 'United States';
+        $response = $integration->searchBusinesses($term, $location, $limit);
+        $businesses = is_array($response) ? ($response['businesses'] ?? []) : [];
+        foreach ($businesses as $b) {
+            $output->writeln(sprintf(
+                ' - %s (%.1f) %s',
+                $b['name'] ?? '?',
+                (float) ($b['rating'] ?? 0),
+                $b['location']['city'] ?? ''
+            ));
+        }
+        return count($businesses);
     }
 }
