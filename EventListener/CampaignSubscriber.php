@@ -55,6 +55,8 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             ['LinkedIn', 'linkedin.post', 'mautic.social.linkedin.post', 'social.linkedin'],
             ['WeChat', 'wechat.send', 'mautic.social.wechat.send', 'social.wechat'],
             ['WeCom', 'wecom.send', 'mautic.social.wecom.send', 'social.wecom'],
+            ['Twitch', 'twitch.chat', 'mautic.social.twitch.chat', 'social.twitch'],
+            ['Rumble', 'rumble.publish', 'mautic.social.rumble.publish', 'social.rumble'],
         ] as [$name, $key, $label, $channel]) {
             $integration = $this->integrationHelper->getIntegrationObject($name);
             if (!$integration || !$integration->getIntegrationSettings()->isPublished()) {
@@ -87,6 +89,8 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             'linkedin.post' => $this->campaignEventHelper->sendLinkedInAction($lead, $ev),
             'wechat.send' => $this->campaignEventHelper->sendWeChatAction($lead, $ev),
             'wecom.send' => $this->campaignEventHelper->sendWeComAction($lead, $ev),
+            'twitch.chat' => $this->campaignEventHelper->sendTwitchAction($lead, $ev),
+            'rumble.publish' => $this->campaignEventHelper->sendRumbleAction($lead, $ev),
             default => null,
         };
 
@@ -105,6 +109,8 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             'linkedin.post' => 'social.linkedin',
             'wechat.send' => 'social.wechat',
             'wecom.send' => 'social.wecom',
+            'twitch.chat' => 'social.twitch',
+            'rumble.publish' => 'social.rumble',
             default => 'social',
         };
         $event->setChannel($channel);
