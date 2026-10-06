@@ -45,25 +45,26 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             ]);
         }
 
-        $this->addMessageAction($event, 'Telegram', 'telegram.send', 'mautic.social.telegram.send', 'social.telegram');
-        $this->addMessageAction($event, 'Discord', 'discord.send', 'mautic.social.discord.send', 'social.discord');
-        $this->addMessageAction($event, 'Mastodon', 'mastodon.post', 'mautic.social.mastodon.post', 'social.mastodon');
-    }
-
-    private function addMessageAction(CampaignBuilderEvent $event, string $integrationName, string $actionKey, string $labelKey, string $channel): void
-    {
-        $integration = $this->integrationHelper->getIntegrationObject($integrationName);
-        if (!$integration || !$integration->getIntegrationSettings()->isPublished()) {
-            return;
+        foreach ([
+            ['Telegram', 'telegram.send', 'mautic.social.telegram.send', 'social.telegram'],
+            ['Discord', 'discord.send', 'mautic.social.discord.send', 'social.discord'],
+            ['Mastodon', 'mastodon.post', 'mautic.social.mastodon.post', 'social.mastodon'],
+            ['Bluesky', 'bluesky.post', 'mautic.social.bluesky.post', 'social.bluesky'],
+            ['Reddit', 'reddit.submit', 'mautic.social.reddit.submit', 'social.reddit'],
+            ['WhatsApp', 'whatsapp.send', 'mautic.social.whatsapp.send', 'social.whatsapp'],
+        ] as [$name, $key, $label, $channel]) {
+            $integration = $this->integrationHelper->getIntegrationObject($name);
+            if (!$integration || !$integration->getIntegrationSettings()->isPublished()) {
+                continue;
+            }
+            $event->addAction($key, [
+                'label' => $label,
+                'description' => $label.'_desc',
+                'eventName' => SocialEvents::ON_CAMPAIGN_TRIGGER_ACTION,
+                'formType' => SocialMessageSendType::class,
+                'channel' => $channel,
+            ]);
         }
-
-        $event->addAction($actionKey, [
-            'label' => $labelKey,
-            'description' => $labelKey.'_desc',
-            'eventName' => SocialEvents::ON_CAMPAIGN_TRIGGER_ACTION,
-            'formType' => SocialMessageSendType::class,
-            'channel' => $channel,
-        ]);
     }
 
     public function onCampaignAction(CampaignExecutionEvent $event): void
@@ -77,6 +78,9 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             'telegram.send' => $this->campaignEventHelper->sendTelegramAction($lead, $ev),
             'discord.send' => $this->campaignEventHelper->sendDiscordAction($lead, $ev),
             'mastodon.post' => $this->campaignEventHelper->sendMastodonAction($lead, $ev),
+            'bluesky.post' => $this->campaignEventHelper->sendBlueskyAction($lead, $ev),
+            'reddit.submit' => $this->campaignEventHelper->sendRedditAction($lead, $ev),
+            'whatsapp.send' => $this->campaignEventHelper->sendWhatsAppAction($lead, $ev),
             default => null,
         };
 
@@ -89,22 +93,21 @@ final readonly class CampaignSubscriber implements EventSubscriberInterface
             'telegram.send' => 'social.telegram',
             'discord.send' => 'social.discord',
             'mastodon.post' => 'social.mastodon',
+            'bluesky.post' => 'social.bluesky',
+            'reddit.submit' => 'social.reddit',
+            'whatsapp.send' => 'social.whatsapp',
             default => 'social',
         };
         $event->setChannel($channel);
 
         if (is_array($result) && empty($result['failed'])) {
             $event->setResult($result);
-
             return;
         }
-
         if (false === $result) {
             $event->setFailed($this->translator->trans('mautic.social.campaign.error.no_handle'));
-
             return;
         }
-
         $reason = is_array($result) ? ($result['reason'] ?? $result['response'] ?? 'failed') : 'failed';
         $event->setFailed(is_string($reason) ? $reason : json_encode($reason));
     }

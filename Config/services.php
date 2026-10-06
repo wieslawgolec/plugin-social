@@ -12,10 +12,16 @@ return function (ContainerConfigurator $configurator): void {
         ->autoconfigure()
         ->public();
 
+    $excludes = [
+        'Helper/CampaignEventHelper.php',
+        'Helper/TwitterCommandHelper.php',
+    ];
+
     $services->load('MauticPlugin\\MauticSocialBundle\\', '../')
-        ->exclude('../{'.implode(',', MauticCoreExtension::DEFAULT_EXCLUDES).'}');
+        ->exclude('../{'.implode(',', array_merge(MauticCoreExtension::DEFAULT_EXCLUDES, $excludes)).'}');
 
     $services->load('MauticPlugin\\MauticSocialBundle\\Entity\\', '../Entity/*Repository.php');
+
     $services->set('mautic.social.helper.campaign', MauticPlugin\MauticSocialBundle\Helper\CampaignEventHelper::class);
     $services->set('mautic.social.helper.twitter_command', MauticPlugin\MauticSocialBundle\Helper\TwitterCommandHelper::class);
 
@@ -31,6 +37,7 @@ return function (ContainerConfigurator $configurator): void {
     $services->set('mautic.integration.youtube', MauticPlugin\MauticSocialBundle\Integration\YouTubeIntegration::class);
     $services->set('mautic.integration.pinterest', MauticPlugin\MauticSocialBundle\Integration\PinterestIntegration::class);
     $services->set('mautic.integration.discord', MauticPlugin\MauticSocialBundle\Integration\DiscordIntegration::class);
+    $services->set('mautic.integration.whatsapp', MauticPlugin\MauticSocialBundle\Integration\WhatsAppIntegration::class);
 
     $services->alias('mautic.social.repository.lead', MauticPlugin\MauticSocialBundle\Entity\LeadRepository::class);
     $services->alias('mautic.social.model.monitoring', MauticPlugin\MauticSocialBundle\Model\MonitoringModel::class);
