@@ -186,6 +186,74 @@ final class CampaignEventHelper
         return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'WhatsApp send failed'];
     }
 
+    public function sendLinkedInAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('LinkedIn');
+        if (!$integration || !method_exists($integration, 'postText')) {
+            return ['failed' => 1, 'response' => 'LinkedIn integration unavailable'];
+        }
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+        $leadArray = $lead->getProfileFields();
+        $message = $this->parseLeadText($message, $leadArray);
+        $result = $integration->postText($message);
+        if (is_array($result) && empty($result['failed']) && empty($result['error'])) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'LinkedIn post failed'];
+    }
+
+    public function sendWeChatAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('WeChat');
+        if (!$integration || !method_exists($integration, 'sendText')) {
+            return ['failed' => 1, 'response' => 'WeChat integration unavailable'];
+        }
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+        $leadArray = $lead->getProfileFields();
+        $message = $this->parseLeadText($message, $leadArray);
+        $openId = (string) ($props['channelTarget'] ?? $leadArray['wechat'] ?? $leadArray['openid'] ?? '');
+        if ('' === $openId) {
+            return false;
+        }
+        $result = $integration->sendText($openId, $message);
+        if (is_array($result) && (empty($result['errcode']) || 0 === (int) ($result['errcode'] ?? -1))) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'WeChat send failed'];
+    }
+
+    public function sendWeComAction(Lead $lead, array $event): array|false
+    {
+        $integration = $this->integrationHelper->getIntegrationObject('WeCom');
+        if (!$integration || !method_exists($integration, 'sendText')) {
+            return ['failed' => 1, 'response' => 'WeCom integration unavailable'];
+        }
+        $props = $event['properties'] ?? $event;
+        $message = (string) ($props['message'] ?? '');
+        if ('' === trim($message)) {
+            return ['failed' => 1, 'response' => 'Empty message'];
+        }
+        $leadArray = $lead->getProfileFields();
+        $message = $this->parseLeadText($message, $leadArray);
+        $userId = (string) ($props['channelTarget'] ?? $leadArray['wecom'] ?? $leadArray['userid'] ?? '');
+        if ('' === $userId) {
+            return false;
+        }
+        $result = $integration->sendText($userId, $message);
+        if (is_array($result) && isset($result['errcode']) && 0 === (int) $result['errcode']) {
+            return ['timeline' => $message, 'response' => $result];
+        }
+        return is_array($result) ? ['failed' => 1, 'response' => $result] : ['failed' => 1, 'response' => 'WeCom send failed'];
+    }
+
     private function parseLeadText(string $text, array $lead, ?int $channelId = -1): string
     {
         $tokens = TokenHelper::findLeadTokens($text, $lead);
