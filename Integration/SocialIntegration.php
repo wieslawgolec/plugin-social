@@ -29,6 +29,30 @@ abstract class SocialIntegration extends AbstractIntegration
     }
 
     /**
+     * Prefer PNG under Assets/img/{name}.png; fall back to SVG for new networks.
+     */
+    public function getIcon(): string
+    {
+        $systemPath = $this->pathsHelper->getSystemPath('root');
+        $pluginPath = $this->pathsHelper->getSystemPath('plugins');
+        $bundlePath = $this->pathsHelper->getSystemPath('bundles');
+        $genericIcon = $bundlePath.'/PluginBundle/Assets/img/generic.png';
+
+        $name = strtolower($this->getName());
+        $bundle = $this->settings->getPlugin()->getBundle();
+        $base = $pluginPath.'/'.$bundle.'/Assets/img/'.$name;
+
+        foreach (['.png', '.svg'] as $ext) {
+            $icon = $base.$ext;
+            if (file_exists($systemPath.'/'.$icon)) {
+                return $icon;
+            }
+        }
+
+        return parent::getIcon() ?: $genericIcon;
+    }
+
+    /**
      * @param Form|FormBuilder $builder
      * @param array            $data
      * @param string           $formArea
@@ -63,7 +87,6 @@ abstract class SocialIntegration extends AbstractIntegration
             if ([] === $available) {
                 return [];
             }
-            // create social profile fields
             $socialProfileUrls = $this->integrationHelper->getSocialProfileUrlRegex();
 
             foreach ($available as $field => $details) {
@@ -145,32 +168,16 @@ abstract class SocialIntegration extends AbstractIntegration
         ];
     }
 
-    /**
-     * Get the array key for clientId.
-     *
-     * @return string
-     */
     public function getClientIdKey()
     {
         return 'client_id';
     }
 
-    /**
-     * Get the array key for client secret.
-     *
-     * @return string
-     */
     public function getClientSecretKey()
     {
         return 'client_secret';
     }
 
-    /**
-     * @param string $data
-     * @param bool   $postAuthorization
-     *
-     * @return mixed
-     */
     public function parseCallbackResponse($data, $postAuthorization = false)
     {
         if ($postAuthorization) {
@@ -180,31 +187,16 @@ abstract class SocialIntegration extends AbstractIntegration
         return json_decode($data);
     }
 
-    /**
-     * Returns notes specific to sections of the integration form (if applicable).
-     *
-     * @return array<mixed>
-     */
     public function getFormNotes($section)
     {
         return ['', 'info'];
     }
 
-    /**
-     * Get the template for social profiles.
-     *
-     * @return string
-     */
     public function getSocialProfileTemplate()
     {
         return "MauticSocialBundle:Integration/{$this->getName()}/Profile:view.html.twig";
     }
 
-    /**
-     * Get the access token from session or socialCache.
-     *
-     * @return array|mixed|null
-     */
     protected function getContactAccessToken(array &$socialCache)
     {
         if (!$this->requestStack->getCurrentRequest()->hasSession()) {
@@ -232,10 +224,5 @@ abstract class SocialIntegration extends AbstractIntegration
         return $accessToken;
     }
 
-    /**
-     * Returns form type.
-     *
-     * @return string|null
-     */
     abstract public function getFormType();
 }
