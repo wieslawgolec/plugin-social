@@ -1,0 +1,37 @@
+name: Materialize integration icons
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "Assets/img/src/**"
+      - ".github/workflows/materialize-icons.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode base64 PNG sources into Assets/img
+        run: |
+          set -e
+          mkdir -p Assets/img
+          for f in Assets/img/src/*.png.b64; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f" .b64)
+            if [ -f "Assets/img/$name" ]; then
+              echo "skip existing Assets/img/$name"
+              continue
+            fi
+            base64 -d "$f" > "Assets/img/$name"
+            python3 -c "import sys; d=open(sys.argv[1],'rb').read(8); assert d[:8]==bytes([137,80,78,71,13,10,26,10]), d.hex()" "Assets/img/$name"
+            echo "wrote Assets/img/$name ($(wc -c < "Assets/img/$name") bytes)"
+          done
+      - name: Commit materialized PNGs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "assets: materialize missing integration icons (128x128 PNG)"
+          file_pattern: Assets/img/*.png
